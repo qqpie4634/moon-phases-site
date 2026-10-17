@@ -1,0 +1,14 @@
+let day=0,timer=null;const $=id=>document.getElementById(id);const chips=$('chips');phases.forEach((p,i)=>{let b=document.createElement('button');b.textContent=p[0];b.onclick=()=>setDay(p[3]);chips.appendChild(b)});
+function setDay(v){day=(v+29.53)%29.53;const angle=2*Math.PI*day/29.53;let near=Math.round(day/(29.53/8))%8;const p=phases[near];$('day').value=day;$('dayVal').textContent=day.toFixed(1);$('phase').textContent=p[0];$('lunar').textContent=p[1];$('description').textContent=p[2];[...chips.children].forEach((b,i)=>b.classList.toggle('active',i===near));
+// Sun is on the left; the illuminated orbital hemisphere always faces left.
+let x=540-235*Math.cos(angle),y=325+235*Math.sin(angle);$('moonOrbit').innerHTML=`<circle cx="${x}" cy="${y}" r="30" fill="#495363" stroke="#d7dce7" stroke-width="2"/><path d="M ${x} ${y-30} A 30 30 0 0 0 ${x} ${y+30} Z" fill="#fff0bb"/><circle cx="${x}" cy="${y}" r="35" fill="none" stroke="#f1cf7c" stroke-width="2" stroke-dasharray="4 4"/><circle cx="${x}" cy="${y}" r="47" fill="transparent"/><text x="${x}" y="${y+66}" fill="#ffffff" text-anchor="middle" font-size="22" font-weight="bold" pointer-events="none">月亮</text>`;
+// Illuminated visible lunar face with correct waxing-right / waning-left geometry.
+const waxing=day<=14.765;const f=(1-Math.cos(angle))/2;const r=101,cx=110,cy=110;let html='';if(f>0.0002){let pts=[];for(let yy=-r;yy<=r;yy+=1){let half=Math.sqrt(Math.max(0,r*r-yy*yy));let limb=half*Math.abs(Math.cos(angle));let left,right;if(waxing){if(f<=.5){left=cx+limb;right=cx+half}else{left=cx-limb;right=cx+half}}else{if(f<=.5){left=cx-half;right=cx-limb}else{left=cx-half;right=cx+limb}}pts.push(`<rect x="${left}" y="${cy+yy}" width="${Math.max(0,right-left)}" height="1.25" fill="#f7edcf"/>`)}html=pts.join('')} $('moonLight').innerHTML=html;
+}
+// Allow direct dragging of the moon on its orbit, including touch input.
+const orbitSvg=document.querySelector('.orbit svg');let dragging=false;
+function dragMoon(e){const point=orbitSvg.createSVGPoint();point.x=e.clientX;point.y=e.clientY;const matrix=orbitSvg.getScreenCTM();if(!matrix)return;const loc=point.matrixTransform(matrix.inverse());let angle=Math.atan2(loc.y-325,540-loc.x);if(angle<0)angle+=Math.PI*2;setDay(angle/(Math.PI*2)*29.53)}
+$('moonOrbit').addEventListener('pointerdown',e=>{dragging=true;orbitSvg.setPointerCapture(e.pointerId);dragMoon(e);e.preventDefault()});
+orbitSvg.addEventListener('pointermove',e=>{if(dragging)dragMoon(e)});
+orbitSvg.addEventListener('pointerup',()=>dragging=false);orbitSvg.addEventListener('pointercancel',()=>dragging=false);
+$('day').oninput=e=>setDay(Number(e.target.value));$('back').onclick=()=>setDay(day-1);$('next').onclick=()=>setDay(day+1);$('play').onclick=()=>{if(timer){clearInterval(timer);timer=null;$('play').textContent='▶ 自動播放'}else{timer=setInterval(()=>setDay(day+.20),80);$('play').textContent='⏸ 暫停'}};setDay(0);
